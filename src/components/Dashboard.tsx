@@ -16,32 +16,32 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
       value: "12,847",
       change: "+2.5%",
       icon: Book,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      color: "text-gray-700",
+      bgColor: "bg-gray-100"
     },
     {
       title: "Active Patrons",
       value: "3,421",
       change: "+8.1%",
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-50"
+      color: "text-gray-700",
+      bgColor: "bg-gray-100"
     },
     {
       title: "Books Checked Out",
       value: "1,256",
       change: "-1.2%",
       icon: BookOpen,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      color: "text-gray-700",
+      bgColor: "bg-gray-100"
     },
     {
       title: "Overdue Items",
       value: "43",
       change: "-15.3%",
       icon: Clock,
-      color: "text-red-600",
-      bgColor: "bg-red-50"
+      color: "text-gray-700",
+      bgColor: "bg-gray-100"
     }
   ];
 
@@ -64,17 +64,17 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">Welcome to LibraryOS</h2>
-        <p className="text-blue-100 mb-4">
-          Your next-generation library management system. Everything you need to manage your library efficiently.
+      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg p-6 text-white">
+        <h2 className="text-2xl font-bold mb-2">Welcome to Al Gazzali Library System</h2>
+        <p className="text-gray-200 mb-4">
+          Professional library management system for efficient operations and patron services.
         </p>
         <div className="flex space-x-3">
-          <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
+          <Button variant="secondary" className="bg-white text-gray-900 hover:bg-gray-100">
             <Plus className="h-4 w-4 mr-2" />
             Add New Book
           </Button>
-          <Button variant="outline" className="border-white text-white hover:bg-blue-600">
+          <Button variant="outline" className="border-white text-white hover:bg-gray-800">
             <User className="h-4 w-4 mr-2" />
             Register Patron
           </Button>
@@ -84,9 +84,9 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
+          <Card key={index} className="hover:shadow-md transition-shadow border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">
+              <CardTitle className="text-sm font-medium text-gray-600">
                 {stat.title}
               </CardTitle>
               <div className={`p-2 rounded-md ${stat.bgColor}`}>
@@ -94,8 +94,8 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-              <p className={`text-xs ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+              <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+              <p className={`text-xs ${stat.change.startsWith('+') ? 'text-gray-700' : 'text-gray-500'}`}>
                 {stat.change} from last month
               </p>
             </CardContent>
@@ -106,10 +106,10 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card>
+        <Card className="border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-slate-600" />
+              <Clock className="h-5 w-5 text-gray-600" />
               <span>Recent Activity</span>
             </CardTitle>
             <CardDescription>Latest transactions and system events</CardDescription>
@@ -117,14 +117,14 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
           <CardContent>
             <div className="space-y-4">
               {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                    <p className="text-sm text-gray-600">
                       {activity.item} {activity.patron && `• ${activity.patron}`}
                     </p>
                   </div>
-                  <span className="text-xs text-slate-500">{activity.time}</span>
+                  <span className="text-xs text-gray-500">{activity.time}</span>
                 </div>
               ))}
             </div>
@@ -132,10 +132,10 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
         </Card>
 
         {/* Popular Books */}
-        <Card>
+        <Card className="border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <BookOpen className="h-5 w-5 text-slate-600" />
+              <BookOpen className="h-5 w-5 text-gray-600" />
               <span>Popular Books</span>
             </CardTitle>
             <CardDescription>Most checked out books this month</CardDescription>
@@ -144,15 +144,15 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
             <div className="space-y-4">
               {popularBooks.map((book, index) => (
                 <div key={index} className="flex items-center space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
+                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center border border-gray-300">
+                    <span className="text-sm font-bold text-gray-700">#{index + 1}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">{book.title}</p>
-                    <p className="text-sm text-slate-600">{book.author}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
+                    <p className="text-sm text-gray-600">{book.author}</p>
                   </div>
                   <div className="flex-shrink-0">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-300">
                       {book.checkouts} checkouts
                     </Badge>
                   </div>
@@ -164,7 +164,7 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
       </div>
 
       {/* System Health */}
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle>System Health</CardTitle>
           <CardDescription>Current system performance and resource usage</CardDescription>
@@ -173,22 +173,22 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Database Performance</span>
-                <span className="text-slate-900 font-medium">95%</span>
+                <span className="text-gray-600">Database Performance</span>
+                <span className="text-gray-900 font-medium">95%</span>
               </div>
               <Progress value={95} className="h-2" />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Server Uptime</span>
-                <span className="text-slate-900 font-medium">99.9%</span>
+                <span className="text-gray-600">Server Uptime</span>
+                <span className="text-gray-900 font-medium">99.9%</span>
               </div>
               <Progress value={99.9} className="h-2" />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">API Response Time</span>
-                <span className="text-slate-900 font-medium">142ms</span>
+                <span className="text-gray-600">API Response Time</span>
+                <span className="text-gray-900 font-medium">142ms</span>
               </div>
               <Progress value={85} className="h-2" />
             </div>
