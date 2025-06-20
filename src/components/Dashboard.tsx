@@ -1,19 +1,92 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Book, Users, Clock, Plus, BookOpen, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardProps {
   searchQuery: string;
+  userRole: string;
 }
 
-const Dashboard = ({ searchQuery }: DashboardProps) => {
-  const stats = [
+const Dashboard = ({ searchQuery, userRole }: DashboardProps) => {
+  const [stats, setStats] = useState({
+    totalBooks: 0,
+    totalPatrons: 0,
+    checkedOutBooks: 0,
+    overdueItems: 0,
+  });
+
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [popularBooks, setPopularBooks] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchStats();
+    fetchRecentActivity();
+    fetchPopularBooks();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [booksCount, patronsCount, circulationCount] = await Promise.all([
+        supabase.from('books').select('*', { count: 'exact', head: true }),
+        supabase.from('patrons').select('*', { count: 'exact', head: true }),
+        supabase.from('circulation').select('*', { count: 'exact', head: true }).eq('status', 'checked_out'),
+      ]);
+
+      setStats({
+        totalBooks: booksCount.count || 0,
+        totalPatrons: patronsCount.count || 0,
+        checkedOutBooks: circulationCount.count || 0,
+        overdueItems: 0, // TODO: Calculate overdue items
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const { data } = await supabase
+        .from('circulation')
+        .select(`
+          *,
+          books(title),
+          patrons(full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setRecentActivity(data || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    }
+  };
+
+  const fetchPopularBooks = async () => {
+    try {
+      const { data } = await supabase
+        .from('books')
+        .select(`
+          *,
+          authors(name)
+        `)
+        .order('total_copies', { ascending: false })
+        .limit(5);
+
+      setPopularBooks(data || []);
+    } catch (error) {
+      console.error('Error fetching popular books:', error);
+    }
+  };
+
+  const statsData = [
     {
       title: "Total Books",
-      value: "12,847",
+      value: stats.totalBooks.toLocaleString(),
       change: "+2.5%",
       icon: Book,
       color: "text-gray-700",
@@ -21,7 +94,7 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
     },
     {
       title: "Active Patrons",
-      value: "3,421",
+      value: stats.totalPatrons.toLocaleString(),
       change: "+8.1%",
       icon: Users,
       color: "text-gray-700",
@@ -29,7 +102,7 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
     },
     {
       title: "Books Checked Out",
-      value: "1,256",
+      value: stats.checkedOutBooks.toLocaleString(),
       change: "-1.2%",
       icon: BookOpen,
       color: "text-gray-700",
@@ -37,28 +110,12 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
     },
     {
       title: "Overdue Items",
-      value: "43",
+      value: stats.overdueItems.toString(),
       change: "-15.3%",
       icon: Clock,
       color: "text-gray-700",
       bgColor: "bg-gray-100"
     }
-  ];
-
-  const recentActivity = [
-    { action: "Book returned", item: "The Great Gatsby", patron: "John Smith", time: "2 minutes ago" },
-    { action: "New patron registered", item: "Maria Garcia", patron: "", time: "15 minutes ago" },
-    { action: "Book checked out", item: "To Kill a Mockingbird", patron: "Sarah Johnson", time: "1 hour ago" },
-    { action: "Fine paid", item: "$15.50", patron: "Michael Brown", time: "2 hours ago" },
-    { action: "Book reserved", item: "1984", patron: "Emily Davis", time: "3 hours ago" }
-  ];
-
-  const popularBooks = [
-    { title: "The Seven Husbands of Evelyn Hugo", author: "Taylor Jenkins Reid", checkouts: 45 },
-    { title: "Where the Crawdads Sing", author: "Delia Owens", checkouts: 38 },
-    { title: "Educated", author: "Tara Westover", checkouts: 32 },
-    { title: "The Midnight Library", author: "Matt Haig", checkouts: 29 },
-    { title: "Atomic Habits", author: "James Clear", checkouts: 27 }
   ];
 
   return (
@@ -70,20 +127,24 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
           Professional library management system for efficient operations and patron services.
         </p>
         <div className="flex space-x-3">
-          <Button variant="secondary" className="bg-white text-gray-900 hover:bg-gray-100">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Book
-          </Button>
-          <Button variant="outline" className="border-white text-white hover:bg-gray-800">
-            <User className="h-4 w-4 mr-2" />
-            Register Patron
-          </Button>
+          {(userRole === 'staff' || userRole === 'supervisor') && (
+            <>
+              <Button variant="secondary" className="bg-white text-gray-900 hover:bg-gray-100">
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Book
+              </Button>
+              <Button variant="outline" className="border-white text-white hover:bg-gray-800">
+                <User className="h-4 w-4 mr-2" />
+                Register Patron
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {statsData.map((stat, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
@@ -119,14 +180,21 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
               {recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      Book {activity.status === 'checked_out' ? 'checked out' : 'returned'}
+                    </p>
                     <p className="text-sm text-gray-600">
-                      {activity.item} {activity.patron && `• ${activity.patron}`}
+                      {activity.books?.title} • {activity.patrons?.full_name}
                     </p>
                   </div>
-                  <span className="text-xs text-gray-500">{activity.time}</span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(activity.created_at).toLocaleDateString()}
+                  </span>
                 </div>
               ))}
+              {recentActivity.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -136,9 +204,9 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BookOpen className="h-5 w-5 text-gray-600" />
-              <span>Popular Books</span>
+              <span>Book Collection</span>
             </CardTitle>
-            <CardDescription>Most checked out books this month</CardDescription>
+            <CardDescription>Recently added books in the catalog</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -149,15 +217,18 @@ const Dashboard = ({ searchQuery }: DashboardProps) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
-                    <p className="text-sm text-gray-600">{book.author}</p>
+                    <p className="text-sm text-gray-600">{book.authors?.name || 'Unknown Author'}</p>
                   </div>
                   <div className="flex-shrink-0">
                     <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-300">
-                      {book.checkouts} checkouts
+                      {book.total_copies} copies
                     </Badge>
                   </div>
                 </div>
               ))}
+              {popularBooks.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-4">No books available</p>
+              )}
             </div>
           </CardContent>
         </Card>

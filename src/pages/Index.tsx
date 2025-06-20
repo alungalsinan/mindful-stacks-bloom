@@ -1,19 +1,75 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Book, Users, Calendar, Settings, Plus, BookOpen, User, Clock } from "lucide-react";
+import { Search, Book, Users, Calendar, Settings, Plus, BookOpen, User, Clock, LogOut, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/components/Dashboard";
 import BookCatalog from "@/components/BookCatalog";
 import PatronManagement from "@/components/PatronManagement";
 import Circulation from "@/components/Circulation";
+import BulkUpload from "@/components/BulkUpload";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, profile, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return null;
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  // Role-based tab visibility
+  const getVisibleTabs = () => {
+    const baseTabs = [
+      { id: "dashboard", label: "Dashboard", icon: Calendar, visible: true },
+      { id: "catalog", label: "Catalog", icon: BookOpen, visible: true },
+    ];
+
+    if (profile.role === 'staff' || profile.role === 'supervisor') {
+      baseTabs.push(
+        { id: "patrons", label: "Patrons", icon: Users, visible: true },
+        { id: "circulation", label: "Circulation", icon: Clock, visible: true }
+      );
+    }
+
+    if (profile.role === 'supervisor') {
+      baseTabs.push(
+        { id: "upload", label: "Bulk Upload", icon: Upload, visible: true }
+      );
+    }
+
+    return baseTabs.filter(tab => tab.visible);
+  };
+
+  const visibleTabs = getVisibleTabs();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -26,7 +82,7 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/5394ebf3-bef6-4636-87da-89934cc50142.png" 
                   alt="Al Gazzali Library" 
-                  className="h-10 w-10 rounded-full filter grayscale"
+                  className="h-10 w-10 rounded-full"
                 />
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Al Gazzali Library</h1>
@@ -34,7 +90,7 @@ const Index = () => {
                 </div>
               </div>
               <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-300">
-                Professional LMS
+                {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
               </Badge>
             </div>
             
@@ -48,9 +104,13 @@ const Index = () => {
                   className="pl-10 w-80 border-gray-300 focus:border-gray-500"
                 />
               </div>
-              <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
+              <div className="flex items-center space-x-2 text-sm text-gray-700">
+                <User className="h-4 w-4" />
+                <span>{profile.full_name}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
               </Button>
             </div>
           </div>
@@ -60,40 +120,44 @@ const Index = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white p-1 rounded-lg shadow-sm border border-gray-200">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
-              <Calendar className="h-4 w-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="catalog" className="flex items-center space-x-2 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
-              <BookOpen className="h-4 w-4" />
-              <span>Catalog</span>
-            </TabsTrigger>
-            <TabsTrigger value="patrons" className="flex items-center space-x-2 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
-              <Users className="h-4 w-4" />
-              <span>Patrons</span>
-            </TabsTrigger>
-            <TabsTrigger value="circulation" className="flex items-center space-x-2 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
-              <Clock className="h-4 w-4" />
-              <span>Circulation</span>
-            </TabsTrigger>
+          <TabsList className={`grid w-full grid-cols-${visibleTabs.length} bg-white p-1 rounded-lg shadow-sm border border-gray-200`}>
+            {visibleTabs.map((tab) => (
+              <TabsTrigger 
+                key={tab.id}
+                value={tab.id} 
+                className="flex items-center space-x-2 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900"
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <Dashboard searchQuery={searchQuery} />
+            <Dashboard searchQuery={searchQuery} userRole={profile.role} />
           </TabsContent>
 
           <TabsContent value="catalog" className="space-y-6">
-            <BookCatalog searchQuery={searchQuery} />
+            <BookCatalog searchQuery={searchQuery} userRole={profile.role} />
           </TabsContent>
 
-          <TabsContent value="patrons" className="space-y-6">
-            <PatronManagement searchQuery={searchQuery} />
-          </TabsContent>
+          {(profile.role === 'staff' || profile.role === 'supervisor') && (
+            <>
+              <TabsContent value="patrons" className="space-y-6">
+                <PatronManagement searchQuery={searchQuery} userRole={profile.role} />
+              </TabsContent>
 
-          <TabsContent value="circulation" className="space-y-6">
-            <Circulation searchQuery={searchQuery} />
-          </TabsContent>
+              <TabsContent value="circulation" className="space-y-6">
+                <Circulation searchQuery={searchQuery} userRole={profile.role} />
+              </TabsContent>
+            </>
+          )}
+
+          {profile.role === 'supervisor' && (
+            <TabsContent value="upload" className="space-y-6">
+              <BulkUpload userRole={profile.role} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

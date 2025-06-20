@@ -9,16 +9,402 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      authors: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      books: {
+        Row: {
+          author_id: string | null
+          available_copies: number | null
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          isbn: string | null
+          language: string | null
+          location: string | null
+          pages: number | null
+          publication_year: number | null
+          publisher_id: string | null
+          title: string
+          total_copies: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          available_copies?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          language?: string | null
+          location?: string | null
+          pages?: number | null
+          publication_year?: number | null
+          publisher_id?: string | null
+          title: string
+          total_copies?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          available_copies?: number | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          isbn?: string | null
+          language?: string | null
+          location?: string | null
+          pages?: number | null
+          publication_year?: number | null
+          publisher_id?: string | null
+          title?: string
+          total_copies?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_publisher_id_fkey"
+            columns: ["publisher_id"]
+            isOneToOne: false
+            referencedRelation: "publishers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      circulation: {
+        Row: {
+          book_id: string
+          checked_out_by: string | null
+          checkout_date: string | null
+          created_at: string | null
+          due_date: string
+          fine_amount: number | null
+          id: string
+          patron_id: string
+          renewed_count: number | null
+          return_date: string | null
+          status: string | null
+        }
+        Insert: {
+          book_id: string
+          checked_out_by?: string | null
+          checkout_date?: string | null
+          created_at?: string | null
+          due_date: string
+          fine_amount?: number | null
+          id?: string
+          patron_id: string
+          renewed_count?: number | null
+          return_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          book_id?: string
+          checked_out_by?: string | null
+          checkout_date?: string | null
+          created_at?: string | null
+          due_date?: string
+          fine_amount?: number | null
+          id?: string
+          patron_id?: string
+          renewed_count?: number | null
+          return_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circulation_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circulation_checked_out_by_fkey"
+            columns: ["checked_out_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circulation_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fines: {
+        Row: {
+          amount: number
+          circulation_id: string | null
+          created_at: string | null
+          id: string
+          paid_at: string | null
+          patron_id: string
+          reason: string
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          circulation_id?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          patron_id: string
+          reason: string
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          circulation_id?: string | null
+          created_at?: string | null
+          id?: string
+          paid_at?: string | null
+          patron_id?: string
+          reason?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fines_circulation_id_fkey"
+            columns: ["circulation_id"]
+            isOneToOne: false
+            referencedRelation: "circulation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fines_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patrons: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          expiry_date: string | null
+          full_name: string
+          id: string
+          max_books: number | null
+          membership_date: string | null
+          patron_id: string
+          patron_type: string | null
+          phone: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          expiry_date?: string | null
+          full_name: string
+          id?: string
+          max_books?: number | null
+          membership_date?: string | null
+          patron_id: string
+          patron_type?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          expiry_date?: string | null
+          full_name?: string
+          id?: string
+          max_books?: number | null
+          membership_date?: string | null
+          patron_id?: string
+          patron_type?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      publishers: {
+        Row: {
+          address: string | null
+          contact_info: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          address?: string | null
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          address?: string | null
+          contact_info?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      reservations: {
+        Row: {
+          book_id: string
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          patron_id: string
+          priority: number | null
+          reserved_date: string | null
+          status: string | null
+        }
+        Insert: {
+          book_id: string
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          patron_id: string
+          priority?: number | null
+          reserved_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          book_id?: string
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          patron_id?: string
+          priority?: number | null
+          reserved_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
+      is_staff_or_supervisor: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "supervisor" | "staff" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +519,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["supervisor", "staff", "student"],
+    },
   },
 } as const
