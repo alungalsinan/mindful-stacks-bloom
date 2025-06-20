@@ -24,15 +24,19 @@ const Auth = () => {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      navigate("/");
+      if (error) {
+        setError(error.message);
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
     }
     setLoading(false);
   };
@@ -42,22 +46,41 @@ const Auth = () => {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          full_name: fullName,
-          role: role,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: fullName,
+            role: role,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setError("Check your email for the confirmation link!");
+      if (error) {
+        setError(error.message);
+      } else if (data.user) {
+        // Try to create profile immediately after signup
+        try {
+          await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email || email,
+              full_name: fullName,
+              role: role as 'supervisor' | 'staff' | 'student'
+            });
+        } catch (profileError) {
+          console.log('Profile will be created by trigger or auth hook');
+        }
+        
+        setError("Check your email for the confirmation link!");
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError("An unexpected error occurred during signup");
     }
     setLoading(false);
   };
@@ -187,7 +210,11 @@ const Auth = () => {
                     </Select>
                   </div>
                   {error && (
-                    <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                    <div className={`text-sm p-2 rounded ${
+                      error.includes('Check your email') 
+                        ? 'text-green-600 bg-green-50' 
+                        : 'text-red-600 bg-red-50'
+                    }`}>
                       {error}
                     </div>
                   )}
