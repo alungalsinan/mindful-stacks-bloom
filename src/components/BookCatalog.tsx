@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,10 @@ import { Book, Search, Plus, Edit, BookOpen } from "lucide-react";
 
 interface BookCatalogProps {
   searchQuery: string;
+  userRole: 'supervisor' | 'staff' | 'student';
 }
 
-const BookCatalog = ({ searchQuery }: BookCatalogProps) => {
+const BookCatalog = ({ searchQuery, userRole }: BookCatalogProps) => {
   const [filterGenre, setFilterGenre] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -119,10 +119,12 @@ const BookCatalog = ({ searchQuery }: BookCatalogProps) => {
           <h2 className="text-2xl font-bold text-slate-900">Book Catalog</h2>
           <p className="text-slate-600">Manage your library's collection</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Book
-        </Button>
+        {(userRole === 'staff' || userRole === 'supervisor') && (
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Book
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -263,10 +265,12 @@ const BookCatalog = ({ searchQuery }: BookCatalogProps) => {
             <p className="text-slate-600 mb-4">
               Try adjusting your search criteria or add a new book to the catalog.
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Book
-            </Button>
+            {(userRole === 'staff' || userRole === 'supervisor') && (
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Book
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

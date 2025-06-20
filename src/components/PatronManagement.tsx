@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,10 @@ import { Users, Search, Plus, Edit, User, BookOpen } from "lucide-react";
 
 interface PatronManagementProps {
   searchQuery: string;
+  userRole: 'supervisor' | 'staff';
 }
 
-const PatronManagement = ({ searchQuery }: PatronManagementProps) => {
+const PatronManagement = ({ searchQuery, userRole }: PatronManagementProps) => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
 
