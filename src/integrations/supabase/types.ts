@@ -239,6 +239,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          circulation_id: string | null
+          created_at: string
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          circulation_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          circulation_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_circulation_id_fkey"
+            columns: ["circulation_id"]
+            isOneToOne: false
+            referencedRelation: "circulation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patrons: {
         Row: {
           address: string | null
@@ -338,6 +379,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reader_stats: {
+        Row: {
+          books_borrowed: number | null
+          books_returned: number | null
+          created_at: string
+          id: string
+          month: number
+          total_pages_read: number | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          books_borrowed?: number | null
+          books_returned?: number | null
+          created_at?: string
+          id?: string
+          month: number
+          total_pages_read?: number | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          books_borrowed?: number | null
+          books_returned?: number | null
+          created_at?: string
+          id?: string
+          month?: number
+          total_pages_read?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       reservations: {
         Row: {
           book_id: string
@@ -386,11 +463,64 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          book_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_borrow_book: {
+        Args: { p_user_id: string; p_book_id: string }
+        Returns: boolean
+      }
+      get_top_readers: {
+        Args: { p_month?: number; p_year?: number; p_limit?: number }
+        Returns: {
+          user_id: string
+          full_name: string
+          email: string
+          books_borrowed: number
+          books_returned: number
+          total_pages_read: number
+        }[]
+      }
       is_staff_or_supervisor: {
         Args: { _user_id: string }
         Returns: boolean
