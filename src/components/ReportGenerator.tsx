@@ -16,7 +16,6 @@ const ReportGenerator = () => {
     try {
       let data;
       let filename;
-      let headers;
 
       switch (reportType) {
         case 'circulation':
@@ -29,19 +28,18 @@ const ReportGenerator = () => {
               return_date,
               status,
               renewed_count,
-              books(title, isbn, authors(name)),
+              books(title, isbn),
               patrons(full_name, email, patron_id)
             `)
             .order('checkout_date', { ascending: false });
 
           data = circData?.map(record => ({
             'Circulation ID': record.id,
-            'Book Title': record.books?.title,
-            'Book ISBN': record.books?.isbn,
-            'Author': record.books?.authors?.name,
-            'Patron Name': record.patrons?.full_name,
-            'Patron Email': record.patrons?.email,
-            'Patron ID': record.patrons?.patron_id,
+            'Book Title': record.books?.title || 'Unknown',
+            'Book ISBN': record.books?.isbn || 'N/A',
+            'Patron Name': record.patrons?.full_name || 'Unknown',
+            'Patron Email': record.patrons?.email || 'N/A',
+            'Patron ID': record.patrons?.patron_id || 'N/A',
             'Checkout Date': new Date(record.checkout_date).toLocaleDateString(),
             'Due Date': new Date(record.due_date).toLocaleDateString(),
             'Return Date': record.return_date ? new Date(record.return_date).toLocaleDateString() : 'Not Returned',
@@ -58,19 +56,18 @@ const ReportGenerator = () => {
               id,
               checkout_date,
               due_date,
-              books(title, isbn, authors(name)),
+              books(title, isbn),
               patrons(full_name, email, patron_id, phone)
             `)
             .eq('status', 'checked_out')
             .lt('due_date', new Date().toISOString());
 
           data = overdueData?.map(record => ({
-            'Book Title': record.books?.title,
-            'Book ISBN': record.books?.isbn,
-            'Author': record.books?.authors?.name,
-            'Patron Name': record.patrons?.full_name,
-            'Patron Email': record.patrons?.email,
-            'Patron Phone': record.patrons?.phone,
+            'Book Title': record.books?.title || 'Unknown',
+            'Book ISBN': record.books?.isbn || 'N/A',
+            'Patron Name': record.patrons?.full_name || 'Unknown',
+            'Patron Email': record.patrons?.email || 'N/A',
+            'Patron Phone': record.patrons?.phone || 'N/A',
             'Checkout Date': new Date(record.checkout_date).toLocaleDateString(),
             'Due Date': new Date(record.due_date).toLocaleDateString(),
             'Days Overdue': Math.floor((Date.now() - new Date(record.due_date).getTime()) / (1000 * 60 * 60 * 24))
@@ -81,7 +78,7 @@ const ReportGenerator = () => {
         case 'popular':
           const { data: popularData } = await supabase
             .from('circulation')
-            .select('book_id, books(title, isbn, authors(name))')
+            .select('book_id, books(title, isbn)')
             .eq('status', 'returned');
 
           // Count borrowings per book
@@ -90,9 +87,8 @@ const ReportGenerator = () => {
             if (!acc[bookId]) {
               acc[bookId] = {
                 count: 0,
-                title: record.books?.title,
-                isbn: record.books?.isbn,
-                author: record.books?.authors?.name
+                title: record.books?.title || 'Unknown',
+                isbn: record.books?.isbn || 'N/A'
               };
             }
             acc[bookId].count++;
@@ -104,34 +100,45 @@ const ReportGenerator = () => {
             .map((book: any) => ({
               'Book Title': book.title,
               'Book ISBN': book.isbn,
-              'Author': book.author,
               'Times Borrowed': book.count
             }));
           filename = 'popular-books-report.csv';
           break;
 
         case 'reviews':
+          // First get reviews
           const { data: reviewData } = await supabase
             .from('reviews')
             .select(`
               rating,
               comment,
               created_at,
-              books(title, isbn, authors(name)),
-              profiles(full_name, email)
+              user_id,
+              book_id
             `)
             .order('created_at', { ascending: false });
 
-          data = reviewData?.map(review => ({
-            'Book Title': review.books?.title,
-            'Book ISBN': review.books?.isbn,
-            'Author': review.books?.authors?.name,
-            'Reviewer Name': review.profiles?.full_name,
-            'Reviewer Email': review.profiles?.email,
-            'Rating': review.rating,
-            'Comment': review.comment || '',
-            'Review Date': new Date(review.created_at).toLocaleDateString()
-          }));
+          // Then get related data
+          const reviewsWithData = await Promise.all(
+            (reviewData || []).map(async (review) => {
+              const [bookResult, profileResult] = await Promise.all([
+                supabase.from('books').select('title, isbn').eq('id', review.book_id).single(),
+                supabase.from('profiles').select('full_name, email').eq('id', review.user_id).single()
+              ]);
+
+              return {
+                'Book Title': bookResult.data?.title || 'Unknown',
+                'Book ISBN': bookResult.data?.isbn || 'N/A',
+                'Reviewer Name': profileResult.data?.full_name || 'Anonymous',
+                'Reviewer Email': profileResult.data?.email || 'N/A',
+                'Rating': review.rating,
+                'Comment': review.comment || '',
+                'Review Date': new Date(review.created_at).toLocaleDateString()
+              };
+            })
+          );
+
+          data = reviewsWithData;
           filename = 'reviews-report.csv';
           break;
 

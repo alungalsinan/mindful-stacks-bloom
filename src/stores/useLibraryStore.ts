@@ -1,35 +1,26 @@
 
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Book {
   id: string;
   title: string;
-  author_id: string;
-  isbn: string;
+  isbn?: string;
   available_copies: number;
   total_copies: number;
-  description: string;
-  pages: number;
-  publication_year: number;
-  language: string;
-  location: string;
-  category_id: string;
-  publisher_id: string;
   authors?: { name: string };
   categories?: { name: string };
-  publishers?: { name: string };
 }
 
 interface Review {
   id: string;
-  book_id: string;
-  user_id: string;
   rating: number;
-  comment: string;
+  comment?: string;
   created_at: string;
-  books: { title: string };
-  profiles: { full_name: string };
+  user_id: string;
+  books?: { title: string };
+  profiles?: { full_name: string };
 }
 
 interface Circulation {
@@ -38,37 +29,31 @@ interface Circulation {
   patron_id: string;
   checkout_date: string;
   due_date: string;
-  return_date: string | null;
+  return_date?: string;
   status: string;
-  books: { title: string };
-  patrons: { full_name: string };
+  books?: { title: string };
+  patrons?: { full_name: string };
 }
 
 interface LibraryState {
   books: Book[];
   reviews: Review[];
-  userCirculation: Circulation[];
-  topReaders: any[];
-  notifications: any[];
+  circulation: Circulation[];
   loading: boolean;
   
   // Actions
   fetchBooks: () => Promise<void>;
-  fetchUserReviews: (userId: string) => Promise<void>;
-  fetchUserCirculation: (userId: string) => Promise<void>;
-  fetchTopReaders: (month?: number, year?: number) => Promise<void>;
-  borrowBook: (bookId: string, patronId: string) => Promise<boolean>;
-  returnBook: (circulationId: string) => Promise<boolean>;
-  addReview: (bookId: string, rating: number, comment: string) => Promise<boolean>;
-  generateReport: (type: string) => Promise<Blob | null>;
+  fetchReviews: () => Promise<void>;
+  fetchCirculation: () => Promise<void>;
+  borrowBook: (bookId: string, userId: string) => Promise<boolean>;
+  returnBook: (circulationId: string, bookId: string) => Promise<boolean>;
+  addReview: (bookId: string, userId: string, rating: number, comment?: string) => Promise<boolean>;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   books: [],
   reviews: [],
-  userCirculation: [],
-  topReaders: [],
-  notifications: [],
+  circulation: [],
   loading: false,
 
   fetchBooks: async () => {
@@ -79,56 +64,57 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         .select(`
           *,
           authors(name),
-          categories(name),
-          publishers(name)
-        `);
-      
+          categories(name)
+        `)
+        .order('title');
+
       if (error) throw error;
       set({ books: data || [] });
     } catch (error) {
       console.error('Error fetching books:', error);
+      toast.error('Failed to fetch books');
     } finally {
       set({ loading: false });
     }
   },
 
-  fetchUserReviews: async (userId: string) => {
+  fetchReviews: async () => {
     try {
       const { data, error } = await supabase
         .from('reviews')
         .select(`
           *,
-          books(title),
-          profiles(full_name)
+          books(title)
         `)
-        .eq('user_id', userId);
-      
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      set({ reviews: data || [] });
+
+      // Fetch profile data separately
+      const reviewsWithProfiles = await Promise.all(
+        (data || []).map(async (review) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', review.user_id)
+            .single();
+
+          return {
+            ...review,
+            profiles: profile || { full_name: 'Anonymous' }
+          };
+        })
+      );
+
+      set({ reviews: reviewsWithProfiles });
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      toast.error('Failed to fetch reviews');
     }
   },
 
-  fetchUserCirculation: async (userId: string) => {
+  fetchCirculation: async () => {
     try {
-      // Get patron ID from user profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', userId)
-        .single();
-      
-      if (!profile) return;
-
-      const { data: patron } = await supabase
-        .from('patrons')
-        .select('id')
-        .eq('email', profile.email)
-        .single();
-      
-      if (!patron) return;
-
       const { data, error } = await supabase
         .from('circulation')
         .select(`
@@ -136,79 +122,111 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           books(title),
           patrons(full_name)
         `)
-        .eq('patron_id', patron.id)
         .order('checkout_date', { ascending: false });
-      
+
       if (error) throw error;
-      set({ userCirculation: data || [] });
+      set({ circulation: data || [] });
     } catch (error) {
       console.error('Error fetching circulation:', error);
+      toast.error('Failed to fetch circulation data');
     }
   },
 
-  fetchTopReaders: async (month?: number, year?: number) => {
-    try {
-      const { data, error } = await supabase.rpc('get_top_readers', {
-        p_month: month,
-        p_year: year,
-        p_limit: 10
-      });
-      
-      if (error) throw error;
-      set({ topReaders: data || [] });
-    } catch (error) {
-      console.error('Error fetching top readers:', error);
-    }
-  },
-
-  borrowBook: async (bookId: string, patronId: string) => {
+  borrowBook: async (bookId: string, userId: string) => {
     try {
       // Check if user can borrow
-      const { data: profile } = await supabase.auth.getUser();
-      if (!profile.user) return false;
-
       const { data: canBorrow } = await supabase.rpc('can_borrow_book', {
-        p_user_id: profile.user.id,
+        p_user_id: userId,
         p_book_id: bookId
       });
 
-      if (!canBorrow) return false;
+      if (!canBorrow) {
+        toast.error('Cannot borrow this book. Check availability or your borrowing limit.');
+        return false;
+      }
+
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', userId)
+        .single();
+
+      if (!profile) throw new Error('User profile not found');
+
+      // Get or create patron record
+      let { data: patron } = await supabase
+        .from('patrons')
+        .select('id')
+        .eq('email', profile.email)
+        .single();
+
+      if (!patron) {
+        const { data: newPatron, error: patronError } = await supabase
+          .from('patrons')
+          .insert({
+            patron_id: `P${Date.now()}`,
+            full_name: profile.full_name,
+            email: profile.email,
+            patron_type: 'Student',
+            status: 'Active'
+          })
+          .select('id')
+          .single();
+
+        if (patronError) throw patronError;
+        patron = newPatron;
+      }
 
       // Create circulation record
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 14); // 2 weeks
+      dueDate.setDate(dueDate.getDate() + 14);
 
-      const { error } = await supabase
+      const { error: circError } = await supabase
         .from('circulation')
         .insert({
           book_id: bookId,
-          patron_id: patronId,
+          patron_id: patron.id,
           due_date: dueDate.toISOString(),
-          status: 'checked_out'
+          status: 'checked_out',
+          checked_out_by: userId
         });
 
-      if (error) throw error;
+      if (circError) throw circError;
 
-      // Update available copies
-      const { error: updateError } = await supabase.rpc('update_book_copies', {
-        book_id: bookId,
-        change: -1
-      });
+      // Update book available copies manually
+      const book = get().books.find(b => b.id === bookId);
+      if (book && book.available_copies > 0) {
+        const { error: updateError } = await supabase
+          .from('books')
+          .update({ available_copies: book.available_copies - 1 })
+          .eq('id', bookId);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
 
-      // Refresh data
-      get().fetchBooks();
+        // Update local state
+        set({
+          books: get().books.map(b => 
+            b.id === bookId 
+              ? { ...b, available_copies: b.available_copies - 1 }
+              : b
+          )
+        });
+      }
+
+      toast.success('Book borrowed successfully!');
       return true;
     } catch (error) {
       console.error('Error borrowing book:', error);
+      toast.error('Failed to borrow book');
       return false;
     }
   },
 
-  returnBook: async (circulationId: string) => {
+  returnBook: async (circulationId: string, bookId: string) => {
     try {
-      const { error } = await supabase
+      // Update circulation status
+      const { error: circError } = await supabase
         .from('circulation')
         .update({
           return_date: new Date().toISOString(),
@@ -216,93 +234,57 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         })
         .eq('id', circulationId);
 
-      if (error) throw error;
+      if (circError) throw circError;
 
-      // Get book ID to update copies
-      const { data: circulation } = await supabase
-        .from('circulation')
-        .select('book_id')
-        .eq('id', circulationId)
-        .single();
+      // Update book available copies manually
+      const book = get().books.find(b => b.id === bookId);
+      if (book) {
+        const { error: updateError } = await supabase
+          .from('books')
+          .update({ available_copies: book.available_copies + 1 })
+          .eq('id', bookId);
 
-      if (circulation) {
-        await supabase.rpc('update_book_copies', {
-          book_id: circulation.book_id,
-          change: 1
+        if (updateError) throw updateError;
+
+        // Update local state
+        set({
+          books: get().books.map(b => 
+            b.id === bookId 
+              ? { ...b, available_copies: b.available_copies + 1 }
+              : b
+          )
         });
       }
 
+      toast.success('Book returned successfully!');
       return true;
     } catch (error) {
       console.error('Error returning book:', error);
+      toast.error('Failed to return book');
       return false;
     }
   },
 
-  addReview: async (bookId: string, rating: number, comment: string) => {
+  addReview: async (bookId: string, userId: string, rating: number, comment?: string) => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return false;
-
       const { error } = await supabase
         .from('reviews')
         .upsert({
           book_id: bookId,
-          user_id: user.user.id,
+          user_id: userId,
           rating,
-          comment
+          comment: comment || null
         });
 
       if (error) throw error;
+
+      toast.success('Review added successfully!');
+      get().fetchReviews(); // Refresh reviews
       return true;
     } catch (error) {
       console.error('Error adding review:', error);
+      toast.error('Failed to add review');
       return false;
-    }
-  },
-
-  generateReport: async (type: string) => {
-    try {
-      let data;
-      let filename;
-      
-      switch (type) {
-        case 'circulation':
-          const { data: circData } = await supabase
-            .from('circulation')
-            .select(`
-              *,
-              books(title, authors(name)),
-              patrons(full_name, email)
-            `);
-          data = circData;
-          filename = 'circulation-report.json';
-          break;
-        
-        case 'reviews':
-          const { data: reviewData } = await supabase
-            .from('reviews')
-            .select(`
-              *,
-              books(title),
-              profiles(full_name)
-            `);
-          data = reviewData;
-          filename = 'reviews-report.json';
-          break;
-        
-        default:
-          return null;
-      }
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: 'application/json'
-      });
-      
-      return blob;
-    } catch (error) {
-      console.error('Error generating report:', error);
-      return null;
     }
   }
 }));

@@ -13,7 +13,8 @@ interface Review {
   rating: number;
   comment: string;
   created_at: string;
-  profiles: { full_name: string };
+  user_id: string;
+  profiles?: { full_name: string };
 }
 
 interface BookReviewsProps {
@@ -35,22 +36,36 @@ const BookReviews = ({ bookId, userRole }: BookReviewsProps) => {
 
   const fetchReviews = async () => {
     try {
-      const { data, error } = await supabase
+      // First get reviews
+      const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
+        .select('*')
         .eq('book_id', bookId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      setReviews(data || []);
+      if (reviewsError) throw reviewsError;
+
+      // Then get profile data for each review
+      const reviewsWithProfiles = await Promise.all(
+        (reviewsData || []).map(async (review) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', review.user_id)
+            .single();
+
+          return {
+            ...review,
+            profiles: profile || { full_name: 'Anonymous' }
+          };
+        })
+      );
+
+      setReviews(reviewsWithProfiles);
       
       // Check if current user has reviewed
       if (user) {
-        const existing = data?.find(r => r.user_id === user.id);
+        const existing = reviewsWithProfiles.find(r => r.user_id === user.id);
         setUserReview(existing || null);
         if (existing) {
           setNewRating(existing.rating);
@@ -180,7 +195,7 @@ const BookReviews = ({ bookId, userRole }: BookReviewsProps) => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <StarRating rating={review.rating} />
-                    <span className="font-medium">{review.profiles.full_name}</span>
+                    <span className="font-medium">{review.profiles?.full_name || 'Anonymous'}</span>
                     <span className="text-sm text-gray-500">
                       {new Date(review.created_at).toLocaleDateString()}
                     </span>
