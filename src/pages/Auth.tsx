@@ -6,38 +6,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Users, UserCheck } from "lucide-react";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("student");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { signIn, signUp } = useCustomAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        navigate("/");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
+    const { error } = await signIn(username, password);
+    
+    if (error) {
+      setError(error);
+    } else {
+      navigate("/");
     }
+    
     setLoading(false);
   };
 
@@ -46,42 +41,14 @@ const Auth = () => {
     setLoading(true);
     setError("");
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: fullName,
-            role: role,
-          },
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else if (data.user) {
-        // Try to create profile immediately after signup
-        try {
-          await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email || email,
-              full_name: fullName,
-              role: role as 'supervisor' | 'staff' | 'student'
-            });
-        } catch (profileError) {
-          console.log('Profile will be created by trigger or auth hook');
-        }
-        
-        setError("Check your email for the confirmation link!");
-      }
-    } catch (err) {
-      console.error('Signup error:', err);
-      setError("An unexpected error occurred during signup");
+    const { error } = await signUp(username, password, fullName, role);
+    
+    if (error) {
+      setError(error);
+    } else {
+      setError("Account created successfully! You can now sign in.");
     }
+    
     setLoading(false);
   };
 
@@ -119,12 +86,13 @@ const Auth = () => {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="username">Username</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Enter your username"
                       required
                     />
                   </div>
@@ -162,12 +130,13 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="username">Username</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Choose a unique username"
                       required
                     />
                   </div>
@@ -211,7 +180,7 @@ const Auth = () => {
                   </div>
                   {error && (
                     <div className={`text-sm p-2 rounded ${
-                      error.includes('Check your email') 
+                      error.includes('successfully') 
                         ? 'text-green-600 bg-green-50' 
                         : 'text-red-600 bg-red-50'
                     }`}>

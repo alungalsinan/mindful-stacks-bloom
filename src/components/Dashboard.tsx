@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Book, Users, Calendar, Clock, TrendingUp, Star, Award } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MyBorrowings from "./MyBorrowings";
 import TopReaders from "./TopReaders";
@@ -27,7 +27,7 @@ const Dashboard = ({ searchQuery, userRole }: DashboardProps) => {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { profile } = useAuth();
+  const { user } = useCustomAuth();
 
   useEffect(() => {
     fetchDashboardData();
@@ -100,7 +100,7 @@ const Dashboard = ({ searchQuery, userRole }: DashboardProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {profile?.full_name}!
+            Welcome back, {user?.fullName}!
           </h1>
           <p className="text-gray-600">
             {userRole === 'student' && "Discover and borrow your next favorite book"}

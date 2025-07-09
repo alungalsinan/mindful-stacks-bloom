@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Book, Users, Calendar, Settings, Plus, BookOpen, User, Clock, LogOut, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import Dashboard from "@/components/Dashboard";
 import BookCatalog from "@/components/BookCatalog";
 import PatronManagement from "@/components/PatronManagement";
@@ -17,7 +17,7 @@ import BulkUpload from "@/components/BulkUpload";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, loading, signOut } = useCustomAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const Index = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
   }
 
@@ -53,14 +53,14 @@ const Index = () => {
       { id: "catalog", label: "Catalog", icon: BookOpen, visible: true },
     ];
 
-    if (profile.role === 'staff' || profile.role === 'supervisor') {
+    if (user.role === 'staff' || user.role === 'supervisor') {
       baseTabs.push(
         { id: "patrons", label: "Patrons", icon: Users, visible: true },
         { id: "circulation", label: "Circulation", icon: Clock, visible: true }
       );
     }
 
-    if (profile.role === 'supervisor') {
+    if (user.role === 'supervisor') {
       baseTabs.push(
         { id: "upload", label: "Bulk Upload", icon: Upload, visible: true }
       );
@@ -90,7 +90,7 @@ const Index = () => {
                 </div>
               </div>
               <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-300">
-                {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </Badge>
             </div>
             
@@ -106,7 +106,7 @@ const Index = () => {
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-700">
                 <User className="h-4 w-4" />
-                <span>{profile.full_name}</span>
+                <span>{user.fullName}</span>
               </div>
               <Button variant="outline" size="sm" onClick={handleSignOut} className="border-gray-300 text-gray-700 hover:bg-gray-50">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -134,28 +134,28 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <Dashboard searchQuery={searchQuery} userRole={profile.role} />
+            <Dashboard searchQuery={searchQuery} userRole={user.role} />
           </TabsContent>
 
           <TabsContent value="catalog" className="space-y-6">
-            <BookCatalog searchQuery={searchQuery} userRole={profile.role} />
+            <BookCatalog searchQuery={searchQuery} userRole={user.role} />
           </TabsContent>
 
-          {(profile.role === 'staff' || profile.role === 'supervisor') && (
+          {(user.role === 'staff' || user.role === 'supervisor') && (
             <>
               <TabsContent value="patrons" className="space-y-6">
-                <PatronManagement searchQuery={searchQuery} userRole={profile.role} />
+                <PatronManagement searchQuery={searchQuery} userRole={user.role} />
               </TabsContent>
 
               <TabsContent value="circulation" className="space-y-6">
-                <Circulation searchQuery={searchQuery} userRole={profile.role} />
+                <Circulation searchQuery={searchQuery} userRole={user.role} />
               </TabsContent>
             </>
           )}
 
-          {profile.role === 'supervisor' && (
+          {user.role === 'supervisor' && (
             <TabsContent value="upload" className="space-y-6">
-              <BulkUpload userRole={profile.role} />
+              <BulkUpload userRole={user.role} />
             </TabsContent>
           )}
         </Tabs>
