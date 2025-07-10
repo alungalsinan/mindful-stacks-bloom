@@ -506,6 +506,68 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          token: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          token: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          full_name: string
+          id: string
+          password_hash: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          full_name: string
+          id?: string
+          password_hash: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          password_hash?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
