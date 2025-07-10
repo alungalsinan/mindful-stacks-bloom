@@ -100,7 +100,7 @@ serve(async (req) => {
     }
 
     // Create profile entry
-    await supabaseClient
+    const { error: profileError } = await supabaseClient
       .from('profiles')
       .insert({
         id: newUser.id,
@@ -108,6 +108,12 @@ serve(async (req) => {
         full_name: fullName,
         role: role as 'student' | 'staff' | 'supervisor'
       });
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError);
+      // Don't fail the signup if profile creation fails, just log it
+      console.log('Profile creation failed but user was created:', newUser.id);
+    }
 
     console.log('User created successfully:', newUser.id);
 
