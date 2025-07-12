@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Book, Calendar, Clock, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 import { toast } from 'sonner';
 
 interface Circulation {
@@ -26,24 +26,35 @@ interface Circulation {
 const MyBorrowings = () => {
   const [circulations, setCirculations] = useState<Circulation[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, profile } = useAuth();
+  const { user } = useCustomAuth();
 
   useEffect(() => {
-    if (user && profile) {
+    if (user) {
       fetchUserBorrowings();
     }
-  }, [user, profile]);
+  }, [user]);
 
   const fetchUserBorrowings = async () => {
-    if (!profile) return;
+    if (!user) return;
 
     try {
-      // Get patron record
+      // Get patron record by user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) {
+        setLoading(false);
+        return;
+      }
+
       const { data: patron } = await supabase
         .from('patrons')
         .select('id')
-        .eq('email', profile.email)
-        .single();
+        .eq('email', profile.email || `${user.username}@library.local`)
+        .maybeSingle();
 
       if (!patron) {
         setLoading(false);

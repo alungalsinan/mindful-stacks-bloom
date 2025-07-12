@@ -13,6 +13,8 @@ import BookCatalog from "@/components/BookCatalog";
 import PatronManagement from "@/components/PatronManagement";
 import Circulation from "@/components/Circulation";
 import BulkUpload from "@/components/BulkUpload";
+import MyBorrowings from "@/components/MyBorrowings";
+import StudentCirculationAnalysis from "@/components/StudentCirculationAnalysis";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -52,6 +54,14 @@ const Index = () => {
       { id: "dashboard", label: "Dashboard", icon: Calendar, visible: true },
       { id: "catalog", label: "Catalog", icon: BookOpen, visible: true },
     ];
+
+    // Student-specific tabs
+    if (user.role === 'student') {
+      baseTabs.push(
+        { id: "borrowings", label: "My Borrowings", icon: Book, visible: true },
+        { id: "analysis", label: "Reading Analytics", icon: Calendar, visible: true }
+      );
+    }
 
     if (user.role === 'staff' || user.role === 'supervisor') {
       baseTabs.push(
@@ -149,6 +159,18 @@ const Index = () => {
 
               <TabsContent value="circulation" className="space-y-6">
                 <Circulation searchQuery={searchQuery} userRole={user.role} />
+              </TabsContent>
+            </>
+          )}
+
+          {user.role === 'student' && (
+            <>
+              <TabsContent value="borrowings" className="space-y-6">
+                <MyBorrowings />
+              </TabsContent>
+
+              <TabsContent value="analysis" className="space-y-6">
+                <StudentCirculationAnalysis />
               </TabsContent>
             </>
           )}
