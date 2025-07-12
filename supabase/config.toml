@@ -57,3 +57,6 @@ verify_jwt = false
 
 [functions.auth-logout]
 verify_jwt = false
+
+[functions.supervisor-manage-students]
+verify_jwt = false

@@ -15,6 +15,7 @@ import Circulation from "@/components/Circulation";
 import BulkUpload from "@/components/BulkUpload";
 import MyBorrowings from "@/components/MyBorrowings";
 import StudentCirculationAnalysis from "@/components/StudentCirculationAnalysis";
+import SupervisorStudentManagement from "@/components/SupervisorStudentManagement";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -72,7 +73,8 @@ const Index = () => {
 
     if (user.role === 'supervisor') {
       baseTabs.push(
-        { id: "upload", label: "Bulk Upload", icon: Upload, visible: true }
+        { id: "upload", label: "Bulk Upload", icon: Upload, visible: true },
+        { id: "students", label: "Manage Students", icon: Users, visible: true }
       );
     }
 
@@ -176,9 +178,15 @@ const Index = () => {
           )}
 
           {user.role === 'supervisor' && (
-            <TabsContent value="upload" className="space-y-6">
-              <BulkUpload userRole={user.role} />
-            </TabsContent>
+            <>
+              <TabsContent value="upload" className="space-y-6">
+                <BulkUpload userRole={user.role} />
+              </TabsContent>
+
+              <TabsContent value="students" className="space-y-6">
+                <SupervisorStudentManagement />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </div>
